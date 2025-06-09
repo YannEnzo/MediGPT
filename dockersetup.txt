@@ -1,0 +1,221 @@
+# Dockerfile for MediGPT Agents
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create agents directory if it doesn't exist
+RUN mkdir -p agents
+
+# Expose ports
+EXPOSE 8000 8501
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+echo "Starting MediGPT Agents..."\n\
+echo "Backend API: http://localhost:8000"\n\
+echo "Frontend UI: http://localhost:8501"\n\
+echo "API Docs: http://localhost:8000/docs"\n\
+echo ""\n\
+# Start FastAPI in background\n\
+uvicorn main:app --host 0.0.0.0 --port 8000 &\n\
+# Wait a moment for API to start\n\
+sleep 5\n\
+# Start Streamlit frontend\n\
+streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Default command
+CMD ["/app/start.sh"]
+
+---
+
+# docker-compose.yml - Multi-container setup
+version: '3.8'
+
+services:
+  medigpt-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  medigpt-frontend:
+    build: .
+    ports:
+      - "8501:8501"
+    depends_on:
+      - medigpt-api
+    environment:
+      - API_BASE_URL=http://medigpt-api:8000
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+
+  # Optional: Add database for production
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: medigpt
+  #     POSTGRES_USER: medigpt
+  #     POSTGRES_PASSWORD: medigpt_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:
+
+---
+
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+.git/
+.gitignore
+README.md
+.env
+.DS_Store
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+node_modules/
+
+---
+
+# Docker Usage Instructions
+
+## Build and Run with Docker
+
+### Single Container (Recommended for Demo)
+```bash
+# Build the image
+docker build -t medigpt-agents .
+
+# Run the container
+docker run -p 8000:8000 -p 8501:8501 medigpt-agents
+
+# Access the applications:
+# - API: http://localhost:8000
+# - Frontend: http://localhost:8501
+# - API Docs: http://localhost:8000/docs
+```
+
+### Multi-Container with Docker Compose
+```bash
+# Start all services
+docker-compose up --build
+
+# Start in background
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Development with Volume Mounting
+```bash
+# Mount local code for development
+docker run -p 8000:8000 -p 8501:8501 \
+  -v $(pwd):/app \
+  medigpt-agents
+```
+
+## Production Deployment
+
+### Environment Variables
+```bash
+# Create production environment file
+cat > .env.prod << EOF
+API_HOST=0.0.0.0
+API_PORT=8000
+DEBUG=False
+LOG_LEVEL=INFO
+CORS_ORIGINS=["https://yourdomain.com"]
+EOF
+
+# Run with production config
+docker run --env-file .env.prod -p 8000:8000 medigpt-agents
+```
+
+### Health Checks
+```bash
+# Check API health
+curl http://localhost:8000/
+
+# Check agent status
+curl http://localhost:8000/agents/status
+
+# Run internal tests
+docker exec -it <container_id> python test_medigpt.py
+```
+
+### Scaling with Docker Swarm
+```bash
+# Initialize swarm
+docker swarm init
+
+# Deploy stack
+docker stack deploy -c docker-compose.yml medigpt
+
+# Scale services
+docker service scale medigpt_medigpt-api=3
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**: Change ports in docker-compose.yml
+2. **Memory issues**: Increase Docker memory allocation
+3. **API connection**: Check if backend is fully started before frontend
+4. **Permission errors**: Ensure proper file permissions in container
+
+### Debug Commands
+```bash
+# Shell into container
+docker exec -it <container_id> /bin/bash
+
+# View container logs
+docker logs <container_id>
+
+# Check running processes
+docker exec -it <container_id> ps aux
+
+# Test API connectivity
+docker exec -it <container_id> curl http://localhost:8000/
+```

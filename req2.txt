@@ -1,0 +1,12 @@
+# Core web framework
+fastapi
+uvicorn
+pydantic
+
+# Frontend
+streamlit
+
+# Basic utilities
+requests
+
+# That's it! Keep it simple for now
