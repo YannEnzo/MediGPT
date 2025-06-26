@@ -2,11 +2,6 @@
 
 **A sophisticated multi-agent AI system for medical diagnosis, evidence validation, and treatment planning**
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 ## 🎯 **Project Overview**
 
 MediGPT Agents is a comprehensive AI-powered clinical decision support system that simulates real-world medical workflows. Built with a modern microservices architecture, it demonstrates advanced AI engineering principles applied to healthcare informatics.
@@ -243,4 +238,4 @@ This system is for **educational and demonstration purposes only**. It is not in
 
 **⭐ If you found this project interesting, please give it a star!**
 
-**🔗 Connect with me on [LinkedIn](https://linkedin.com/in/yourprofile) to discuss AI in healthcare!**
+**🔗 Connect with me on [LinkedIn](https://www.linkedin.com/in/yann-enzo/) to discuss AI in healthcare!**
